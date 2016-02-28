@@ -187,8 +187,6 @@ for i in codeCleaned:
 
             reg = assignRegister(dest, line)
 
-            if(operator == '+'):
-                print ('add {0}, {1}, {2}'.format(dest, first, second))
             if(searchInt(first)):
                 if(searchInt(second)):
                     if(operator == '+'):
@@ -196,6 +194,25 @@ for i in codeCleaned:
                     elif(operator == '-'):
                         result = int(first) - int(second)
                     print ('mov r{0}, {1}'.format(reg, result))
+                elif(searchVariable(second)):
+                    reg2 = assignRegister(second, line)
+                    if(operator == '+'):
+                        print ('add r{0}, r{1}, {2}'.format(reg, reg2, first))
+                    elif(operator == '-'):
+                        print ('sub r{0}, r{1}, {2}'.format(reg, reg2, first))
+            elif(searchVariable(first)):
+                reg2 = assignRegister(first, line)
+                if(searchInt(second)):
+                    if(operator == '+'):
+                        print ('add r{0}, r{1}, {2}'.format(reg, reg2, second))
+                    elif(operator == '-'):
+                        print ('sub r{0}, r{1}, {2}'.format(reg, reg2, second))
+                elif(searchVariable(second)):
+                    reg3 = assignRegister(second, line)
+                    if(operator == '+'):
+                        print ('add r{0}, r{1}, r{2}'.format(reg, reg2, reg3))
+                    elif(operator == '-'):
+                        print ('sub r{0}, r{1}, r{2}'.format(reg, reg2, reg3))
 
         elif(searchInt(val)):
             s = integer.search(val)
