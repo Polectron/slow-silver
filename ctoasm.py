@@ -4,18 +4,28 @@
 import re
 
 declaration = re.compile(r'([^ ]+) ?= ?([^ ]+)')
+
 comparation = re.compile(r'([^ ]+) ?== ?([^ ]+)')
+
+condition = re.compile(r'^if\((.*)\)')
+
+foor_loop = re.compile(r'^for\((.*)\)')
+while_loop = re.compile(r'^while\((.*)\)')
+function = re.compile(r'^([a-zA-Z][a-zA-Z0-9_]*)\(\)')
+
+start_block = re.compile(r'{')
+end_block = re.compile(r'}')
 
 operation = re.compile(r'([^ ]+) ?([\+\-]) ?([^ ]+)')
 substraction = re.compile(r'(.+)\-(.+)')
 addition = re.compile(r'(.+)\+(.+)')
 
 integer = re.compile(r'\d+')
-variable = re.compile(r'(?<!\'&)([a-zA-Z][a-zA-Z0-9_]*)(?!\')')
+variable = re.compile(r'(?<!\'&)([a-zA-Z][a-zA-Z0-9_]*)(?!\')(?!\(\))')
 pointer = re.compile(r'(?<!\')&([a-zA-Z][a-zA-Z0-9_]*)(?!\')')
 char = re.compile(r'(\')(\w)(\')')
 
-code = "a = 2;\nb = 5+a;\nc='d';\ne=a;\n"
+code = "a = 2;\nb = 5+a;\nc='d';\ne=a;\nprueba();\n"
 code = code.rstrip('\n')
 code = code.rstrip(';')
 codeCleaned = code.split(';\n')
@@ -100,6 +110,15 @@ def searchDeclaration(string):
     s = declaration.search(string)
     if s is not None:
         if verbose: print ('Tenemos una declaración')
+        return True
+    else:
+        return False
+
+
+def searchFunction(string):
+    s = function.search(string)
+    if s is not None:
+        if verbose: print ('Tenemos una función')
         return True
     else:
         return False
@@ -244,8 +263,10 @@ for i in codeCleaned:
             reg = assignRegister(dest, line)
             reg2 = assignRegister(source, line)
             print ('mov r{0}, r{1}'.format(reg, reg2))
-    elif(searchCmp()):
-            print('cmp ')
+    elif(searchCmp(val)):
+        print('cmp ')
+    elif(searchFunction(val)):
+        print('Defined function')
 
     line += 1
 
