@@ -4,15 +4,18 @@
 import re
 
 declaration = re.compile(r'([^ ]+) ?= ?([^ ]+)')
+comparation = re.compile(r'([^ ]+) ?== ?([^ ]+)')
+
 operation = re.compile(r'([^ ]+) ?([\+\-]) ?([^ ]+)')
 substraction = re.compile(r'(.+)\-(.+)')
 addition = re.compile(r'(.+)\+(.+)')
+
 integer = re.compile(r'\d+')
-variable = re.compile(r'.+')
+variable = re.compile(r'(?<!\'&)([a-zA-Z][a-zA-Z0-9_]*)(?!\')')
+pointer = re.compile(r'(?<!\')&([a-zA-Z][a-zA-Z0-9_]*)(?!\')')
 char = re.compile(r'(\')(\w)(\')')
 
-code = "a = 2;\nb = 5+a;\nc = a+5;\nd=6+6;\n"
-
+code = "a = 2;\nb = 5+a;\nc='d';\ne=a;\n"
 code = code.rstrip('\n')
 code = code.rstrip(';')
 codeCleaned = code.split(';\n')
@@ -96,7 +99,16 @@ def assignRegister(var, line):
 def searchDeclaration(string):
     s = declaration.search(string)
     if s is not None:
-        if verbose: print 'Tenemos una declaración'
+        if verbose: print ('Tenemos una declaración')
+        return True
+    else:
+        return False
+
+
+def searchCmp(string):
+    s = comparation.search(string)
+    if s is not None:
+        if verbose: print ('Tenemos una comparación')
         return True
     else:
         return False
@@ -146,36 +158,39 @@ def searchOperation(string):
     else:
         return False
 
+if verbose: print ('Comprobando variables\n')
 
 #Check variables
 line = 0
 for i in codeCleaned:
-    if(searchDeclaration(i)):
-        s = declaration.search(i)
-        dest = s.group(1)
-        val = s.group(2)
-
-        if(searchVariable(val) and not searchChar(val) and not searchInt(val)):
-            s = variable.search(val)
-            val = s.group()
-            if val not in variables:
-                print ("Error, variable <{0}> was not defined before line {1}".format(val, line))
-                exit()
-            variables[val].setLastLine(line)
-        if dest not in variables:
-            variables[dest] = Variable(line)
-        else:
-            variables[dest].setLastLine(line)
+    if(searchVariable(i)):
+        s = variable.findall(i)
+        if verbose: print ('{0}> {1}'.format(line, i))
+        count = 0
+        for val in s:
+            if count == 0:
+                if val not in variables:
+                    variables[val] = Variable(line)
+                else:
+                    variables[val].setLastLine(line)
+            else:
+                if val not in variables:
+                    print ("Error, variable <{0}> was not defined before line {1}".format(val, line))
+                    exit()
+                variables[val].setLastLine(line)
+            count += 1
 
     line += 1
+
+if verbose: print ('\nProduciendo ASM\n')
 
 #Parse code to asm
 line = 0
 for i in codeCleaned:
     if verbose: print ('{0}> {1}'.format(line, i))
     if(searchDeclaration(i)):
-        s = declaration.search(i)
 
+        s = declaration.search(i)
         dest = s.group(1)
         val = s.group(2)
 
@@ -213,26 +228,24 @@ for i in codeCleaned:
                         print ('add r{0}, r{1}, r{2}'.format(reg, reg2, reg3))
                     elif(operator == '-'):
                         print ('sub r{0}, r{1}, r{2}'.format(reg, reg2, reg3))
-
-        elif(searchInt(val)):
-            s = integer.search(val)
-            reg = assignRegister(dest, line)
-            if(reg != -1):
-                val = s.group()
-                print ('mov r{0}, {1}'.format(reg, val))
         elif(searchChar(val)):
             s = char.search(val)
+            source = s.group(2)
             reg = assignRegister(dest, line)
-            if(reg != -1):
-                val = s.group(2)
-                print ('mov r{0}, {1}'.format(reg, ord(val)))
+            print ('mov r{0}, {1}'.format(reg, ord(source)))
+        elif(searchInt(val)):
+            s = integer.search(val)
+            source = s.group()
+            reg = assignRegister(dest, line)
+            print ('mov r{0}, {1}'.format(reg, source))
         elif(searchVariable(val)):
             s = variable.search(val)
+            source = s.group()
             reg = assignRegister(dest, line)
-            if(reg != -1):
-                val = s.group()
-                regval = assignRegister(val, line)
-                print ('mov r{0}, r{1}'.format(reg, regval))
+            reg2 = assignRegister(source, line)
+            print ('mov r{0}, r{1}'.format(reg, reg2))
+    elif(searchCmp()):
+            print('cmp ')
 
     line += 1
 
