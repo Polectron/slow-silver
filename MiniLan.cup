@@ -1,0 +1,148 @@
+import java_cup.runtime.*;
+
+action code {:
+	NewHashMap table = new NewHashMap();
+:}
+
+parser code {:
+        public static void main(String args[]) throws Exception {
+                new parser(new Yylex(System.in)).parse();        } // End Main
+:} // End parser code
+
+terminal BEGIN, END;
+terminal PLUS, MULT;
+terminal MINUS, DIV;
+terminal PRINT;
+terminal LT, GT;
+terminal EQ;
+terminal SET;
+terminal EOS, LP, RP;
+terminal Double NUMBER;
+terminal String IDENT;
+
+non terminal String identifier;
+non terminal Boolean boolExpr;
+non terminal Double factor, term, arithExpr;
+non terminal program, instructions, instruction, sentence, printSentence;
+non terminal assignSentence;
+
+
+program		::= BEGIN instructions END{: 
+			System.out.println("    PARSER:: program <== BEGIN instructions END"); 
+		    :}
+                   ;
+
+instructions	::= instructions instruction{: 
+			System.out.println("    PARSER:: instructions <== instructions instruction");
+		    :} 	
+                    | instruction{: 
+			System.out.println("    PARSER:: instructions <== instruction");
+		    :} 	
+                   ;
+
+instruction    	::= sentence EOS{:
+			System.out.println("    PARSER:: instruction <== sentence EOS");
+		    :} 
+                   ;	
+
+sentence        ::= printSentence{:
+			System.out.println("    PARSER:: sentence <== printSentence ");
+		    	:}
+		    | assignSentence{:
+			System.out.println("	PARSER:: sentence <== assignSentence");
+		    	:} 	
+                   ;
+					
+printSentence   ::= PRINT LP arithExpr:a RP {: 
+		    	System.out.println("    PARSER:: printSentence <== PRINT ( arithExpr<"+a+"> )"); 
+		    :}
+		    | PRINT LP boolExpr:b RP {:
+			System.out.println("    PARSER:: printSentence <== PRINT ( boolExpr<"+b+"> )");
+		    :}
+		    | PRINT LP identifier:i RP {:
+			System.out.println("    PARSER:: printSentence<"+table.get(i)+"> <== PRINT ( identifier<"+i+"> )");
+                    :}
+                    ;
+
+boolExpr        ::= term:x1 EQ term:x2 {:
+                        RESULT = false;
+                        if(new Double(x1).compareTo(new Double(x2)) == 0)
+                                RESULT = true;
+                        System.out.println("    PARSER:: boolExpr<"+RESULT+"> <== factor<"+x1+"> EQ factor<"+x2+">");
+
+                    :}
+                    |term:x1 LT term:x2 {:
+                        RESULT = false;
+                        if(new Double(x1).compareTo(new Double(x2)) < 0)
+                                RESULT = true;
+
+                        System.out.println("    PARSER:: boolExpr<"+RESULT+"> <== factor<"+x1+"> LT factor<"+x2+">");
+
+                    :}
+                    |term:x1 GT term:x2 {:
+                        RESULT = false;
+                        if(new Double(x1).compareTo(new Double(x2)) > 0)
+                                RESULT = true;
+                        System.out.println("    PARSER:: boolExpr<"+RESULT+"> <== factor<"+x1+"> GT factor<"+x2+">");
+
+                    :}
+                    ;
+
+
+arithExpr       ::= arithExpr:a PLUS term:t {: 
+		    	RESULT = a+t;
+			System.out.println("    PARSER:: arithExp<"+RESULT+"> <== arithExpr PLUS term"); 
+			:}
+                   | arithExpr:a MINUS term:t {: 
+			RESULT = a-t;
+			System.out.println("    PARSER:: arithExp<"+RESULT+"> <== arithExpr MINUS term"); 
+			:} 
+                   | term:t {:
+			RESULT = t; 
+			System.out.println("    PARSER:: arithExp<"+RESULT+"> <== term<"+t+">"); 
+			:}
+                   ;
+				
+term            ::= term:a MULT factor:t {:
+			 RESULT = a*t;
+			 System.out.println("    PARSER:: term<"+RESULT+"> <== term<"+a+"> MULT factor<"+t+">"); 
+			 :}
+                    | term:a DIV factor:t {:
+			 RESULT = a/t;
+			 System.out.println("    PARSER:: term<"+RESULT+"> <== term<"+a+"> DIV factor<"+t+">"); 
+			 :} 
+                    | factor:f {: 
+			RESULT = f;
+			System.out.println("    PARSER:: term<"+RESULT+"> <== factor<"+f+">"); 		    	
+			:}
+                   ;
+					
+factor          ::= NUMBER:v {:
+                   	 RESULT= v; 
+			 System.out.println("    PARSER:: factor<"+RESULT+"> <== NUMBER<"+v+"> "); 
+		    :}
+		    | MINUS factor:f {:
+			 RESULT = -f;
+			 System.out.println("	PARSER:: factor<"+RESULT+"> <== MINUS factor<"+f+">");
+		    :}
+	            | PLUS factor:f {:
+			 RESULT = f;
+                   	 System.out.println("	PARSER:: factor<"+RESULT+"> <== PLUS factor<"+f+">");
+                    :}
+		    | LP arithExpr:a RP {:
+			 RESULT = a;
+			 System.out.println("	PARSER:: factor<"+RESULT+"> <== LP arithExpr<"+a+"> RP");
+		    :}
+                   ;
+
+identifier      ::= IDENT:i {:
+			RESULT= i;
+			 System.out.println("    PARSER:: identifier<"+i+"> <== IDENT<"+i+">");
+                    :}
+                    ;
+		
+assignSentence  ::= identifier:i SET arithExpr:a {:
+	            	table.put(i,a);
+		    	System.out.println("    PARSER:: assignSentence<"+i+", "+a+">");
+		    :}
+                    ;
